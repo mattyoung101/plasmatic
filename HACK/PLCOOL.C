@@ -198,7 +198,7 @@ int main(void) {
 				for (x = 0; x < X_RES; x++) {
 					//int noise =
 					//	(int) sumOctaveF(4, x, y, time, .5, 0.007, 0, 255);
-					int noise = Noise3Df(x, y, time) * 255.f;
+					int noise = Noise3D(x, y, time) % 255;
 					_setcolor(noise);
 					_setpixel(x, y);
 				}
