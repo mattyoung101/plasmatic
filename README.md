@@ -12,8 +12,12 @@ If that works out, I'm also going to try write a software renderer and spin some
 
 ## References used
 - OpenWatcom manuals
-    - https://open-watcom.github.io/open-watcom-v2-wikidocs/clib.html#_setvideomode
+    - https://open-watcom.github.io/open-watcom-v2-wikidocs/clib.html
     - https://open-watcom.github.io/open-watcom-v2-wikidocs/ctools.pdf
-- How to Program FreeDOS in Graphics Mode https://www.youtube.com/watch?v=uhxKXdZKCeM
-- Let's Code a Plasma Demo https://www.youtube.com/watch?v=X6BpW2N_Sf0
-- http://nuclear.mutantstargoat.com/articles/retrocoding/dos01-setup/#openwatcom-setup
+- How to Program FreeDOS in Graphics Mode: https://www.youtube.com/watch?v=uhxKXdZKCeM
+- Let's Code a Plasma Demo: https://www.youtube.com/watch?v=X6BpW2N_Sf0
+    - only used for background, plasma not copied directly :)
+- Setting up OpenWatcom: http://nuclear.mutantstargoat.com/articles/retrocoding/dos01-setup/#openwatcom-setup
+- Perlin noise implementation: https://github.com/czinn/perlin
+- Blender text: https://www.wikihow.com/Make-3D-Text-with-Blender
+- obj2header: https://github.com/ichlubna/obj2header
