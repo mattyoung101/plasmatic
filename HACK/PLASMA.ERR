@@ -1,5 +1,1 @@
-PLASMA.C(113): Warning! W135: Shift amount too large
-PLASMA.C(114): Warning! W135: Shift amount too large
-PLASMA.C(115): Warning! W135: Shift amount too large
-PLASMA.C(116): Warning! W135: Shift amount too large
-PLASMA.C(188): Warning! W131: No prototype found for function 'srand'
+PLASMA.C(123): Warning! W131: No prototype found for function 'srand'
