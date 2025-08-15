@@ -63,17 +63,16 @@ int main(void) {
 					v += sin(sqrt(c_x*c_x + c_y*c_y + 1.0) + time);
 					v /= 2.0;
 */
-
-/*					v1 = sin(time * 3);
+					v1 = sin(time * 3);
 					v2 = sin(64 + time * 5);
 					c3 = sin(y*3 + time*3);
 					c1 = sin(x*3 + time*2);
 					c2 = sin((x*v1)/X_RES + (y*v2)/Y_RES + time);
 
 					v = (c1+c2+c3)/3;
-					_setcolor(v * 255);
-					_setpixel(x ,y);
-*/
+					//_setcolor(v * 255);
+					//_setpixel(x ,y);
+					printf("%d\n", v);
 				}
 	    	}
 	    	time++;
