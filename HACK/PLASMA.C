@@ -13,96 +13,132 @@
 #define X_RES 320
 #define Y_RES 200
 
-static int SEED = 0;
+// source: https://github.com/czinn/perlin
 
-static int hash[] = {208,34,231,213,32,248,233,56,161,78,24,140,71,48,140,254,245,255,247,247,40,
-                     185,248,251,245,28,124,204,204,76,36,1,107,28,234,163,202,224,245,128,167,204,
-                     9,92,217,54,239,174,173,102,193,189,190,121,100,108,167,44,43,77,180,204,8,81,
-                     70,223,11,38,24,254,210,210,177,32,81,195,243,125,8,169,112,32,97,53,195,13,
-                     203,9,47,104,125,117,114,124,165,203,181,235,193,206,70,180,174,0,167,181,41,
-                     164,30,116,127,198,245,146,87,224,149,206,57,4,192,210,65,210,129,240,178,105,
-                     228,108,245,148,140,40,35,195,38,58,65,207,215,253,65,85,208,76,62,3,237,55,89,
-                     232,50,217,64,244,157,199,121,252,90,17,212,203,149,152,140,187,234,177,73,174,
-                     193,100,192,143,97,53,145,135,19,103,13,90,135,151,199,91,239,247,33,39,145,
-                     101,120,99,3,186,86,99,41,237,203,111,79,220,135,158,42,30,154,120,67,87,167,
-                     135,176,183,191,253,115,184,21,233,58,129,233,142,39,128,211,118,137,139,255,
-                     114,20,218,113,154,27,127,246,250,1,8,198,250,209,92,222,173,21,88,102,219};
-
-int noise2(int x, int y)
-{
-    int tmp = hash[(y + SEED) % 256];
-    return hash[(tmp + x) % 256];
+double rawnoise(int n) {
+    n = (n << 13) ^ n;
+    return (1.0 - ((n * (n * n * 15731 + 789221) + 1376312589) & 0x7fffffff) / 1073741824.0);
 }
 
-float lin_inter(float x, float y, float s)
-{
-    return x + s * (y-x);
+double noise1d(int x, int octave, int seed) {
+    return rawnoise(x * 1619 + octave * 3463 + seed * 13397);
 }
 
-float smooth_inter(float x, float y, float s)
-{
-    return lin_inter(x, y, s * s * (3-2*s));
+double noise2d(int x, int y, int octave, int seed) {
+    return rawnoise(x * 1619 + y * 31337 + octave * 3463 + seed * 13397);
 }
 
-float noise2d(float x, float y)
-{
-    int x_int = x;
-    int y_int = y;
-    float x_frac = x - x_int;
-    float y_frac = y - y_int;
-    int s = noise2(x_int, y_int);
-    int t = noise2(x_int+1, y_int);
-    int u = noise2(x_int, y_int+1);
-    int v = noise2(x_int+1, y_int+1);
-    float low = smooth_inter(s, t, x_frac);
-    float high = smooth_inter(u, v, x_frac);
-    return smooth_inter(low, high, y_frac);
+double noise3d(int x, int y, int z, int octave, int seed) {
+    return rawnoise(x * 1919 + y * 31337 + z * 7669 + octave * 3463 + seed * 13397);
 }
 
-float perlin2d(float x, float y, float freq, int depth)
-{
-    float xa = x*freq;
-    float ya = y*freq;
-    float amp = 1.0;
-    float fin = 0;
-    float div = 0.0;
+double interpolate(double a, double b, double x) {
+    double f = (1 - cos(x * 3.141593)) * 0.5;
 
-    int i;
-    for(i=0; i<depth; i++)
-    {
-        div += 256 * amp;
-        fin += noise2d(xa, ya) * amp;
-        amp /= 2;
-        xa *= 2;
-        ya *= 2;
-    }
-
-    return fin/div;
+    return a * (1 - f) + b * f;
 }
 
-// source: cmaher blog post
-static float
-sumOctaveF(int num_iters, int x, int y, int time, float persistence,
-float scale, int low, int high)
-{
-	float maxamp = 0;
-	float amp = 1.0;
-	float freq = scale;
-	float noise = 0.;
-	int i = 0;
+double smooth1d(double x, int octave, int seed) {
+    int intx = (int)x;
+    double fracx = x - intx;
 
-	for (i = 0; i < num_iters; i++) {
-		noise += noise2d(x * freq, y * freq) * amp;
-		maxamp += amp;
-		amp *= persistence;
-		freq *= 2;
-	}
+    double v1 = noise1d(intx, octave, seed);
+    double v2 = noise1d(intx + 1, octave, seed);
 
-	noise /= maxamp;
-	noise = noise * (high - low) / 2 + (high + low) / 2;
-
-	return noise;
+    return interpolate(v1, v2, fracx);
 }
+
+double smooth2d(double x, double y, int octave, int seed) {
+    int intx = (int)x;
+    double fracx = x - intx;
+    int inty = (int)y;
+    double fracy = y - inty;
+
+    double v1 = noise2d(intx, inty, octave, seed);
+    double v2 = noise2d(intx + 1, inty, octave, seed);
+    double v3 = noise2d(intx, inty + 1, octave, seed);
+    double v4 = noise2d(intx + 1, inty + 1, octave, seed);
+
+    double i1 = interpolate(v1, v2, fracx);
+    double i2 = interpolate(v3, v4, fracx);
+
+    return interpolate(i1, i2, fracy);
+}
+
+double smooth3d(double x, double y, double z, int octave, int seed) {
+    int intx = (int)x;
+    double fracx = x - intx;
+    int inty = (int)y;
+    double fracy = y - inty;
+    int intz = (int)z;
+    double fracz = z - intz;
+
+
+    double v1 = noise3d(intx, inty, intz, octave, seed);
+    double v2 = noise3d(intx + 1, inty, intz, octave, seed);
+    double v3 = noise3d(intx, inty + 1, intz, octave, seed);
+    double v4 = noise3d(intx + 1, inty + 1, intz, octave, seed);
+    double v5 = noise3d(intx, inty, intz + 1, octave, seed);
+    double v6 = noise3d(intx + 1, inty, intz + 1, octave, seed);
+    double v7 = noise3d(intx, inty + 1, intz + 1, octave, seed);
+    double v8 = noise3d(intx + 1, inty + 1, intz + 1, octave, seed);
+
+    double i1 = interpolate(v1, v2, fracx);
+    double i2 = interpolate(v3, v4, fracx);
+    double i3 = interpolate(v5, v6, fracx);
+    double i4 = interpolate(v7, v8, fracx);
+
+    double j1 = interpolate(i1, i2, fracy);
+    double j2 = interpolate(i3, i4, fracy);
+
+    return interpolate(j1, j2, fracz);
+}
+
+double pnoise1d(double x, double persistence, int octaves, int seed) {
+   double total = 0.0;
+   double frequency = 1.0;
+   double amplitude = 1.0;
+   int i = 0;
+
+   for(i = 0; i < octaves; i++) {
+       total += smooth1d(x * frequency, i, seed) * amplitude;
+       frequency /= 2;
+       amplitude *= persistence;
+   }
+
+   return total;
+}
+
+double pnoise2d(double x, double y, double persistence, int octaves, int seed) {
+   double total = 0.0;
+   double frequency = 1.0;
+   double amplitude = 1.0;
+   int i = 0;
+
+   for(i = 0; i < octaves; i++) {
+       total += smooth2d(x * frequency, y * frequency, i, seed) * amplitude;
+       frequency /= 2;
+       amplitude *= persistence;
+   }
+
+   return total;
+}
+
+double pnoise3d(double x, double y, double z, double persistence, int octaves, int seed) {
+   double total = 0.0;
+   double frequency = 1.0;
+   double amplitude = 1.0;
+   int i = 0;
+
+   for(i = 0; i < octaves; i++) {
+       total += smooth3d(x * frequency, y * frequency, z * frequency, i, seed) * amplitude;
+       frequency /= 2;
+       amplitude *= persistence;
+   }
+
+   return total;
+}
+
 
 int main(void) {
     int y;
@@ -131,7 +167,9 @@ int main(void) {
 
 	    	for (y = 0; y < Y_RES; y++) {
 				for (x = 0; x < X_RES; x++) {
-					int noise = (int) (perlin2d(x + time, y + time, 0.007, 4) * 255.f) + 10;
+					int noise = (int)
+						(pnoise3d(x * 0.01, y * 0.01, time * 0.01,
+						0.7, 5, 12124) * 255.);
 					_setcolor(noise);
 					_setpixel(x, y);
 				}
