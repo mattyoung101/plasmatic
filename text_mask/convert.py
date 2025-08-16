@@ -28,6 +28,8 @@ if bitpos > 0:
 
 # Print C array
 print(f"// Image size: {w}x{h}, total pixels: {w*h}")
+print(f"#define GREETZ_WIDTH ({w})")
+print(f"#define GREETZ_HEIGHT ({h})")
 print(f"const unsigned long long huge IMAGE[{len(words)}] = {{")
 
 for i, w64 in enumerate(words):
