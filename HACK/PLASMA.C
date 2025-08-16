@@ -1,6 +1,8 @@
 // Plasmatic by Matt Young
 // UQCS Hackathon 2025
 // Programmed on FreeDOS
+// GREETZ TO:
+// broken_pipe, bpaul, eerie!!, devilbunny, howie
 #include <stdio.h>
 #include <graph.h>
 #include <conio.h>
@@ -8,37 +10,42 @@
 
 // brought to you by Howie
 // close enough(TM)
-#define PI 3.1415926
+// brought to you by Yufeng 16/08/25
+// "verify if it's correct, it's probably not"
+// checked approx 5 minutes later by Matt
+// and it's correct
+// chat he's goated
+#define PI 3.1415926535897932384626
 
 #define X_RES 320
 #define Y_RES 200
 
 // source: https://github.com/czinn/perlin
 
-double rawnoise(int n) {
+static inline double rawnoise(int n) {
     n = (n << 13) ^ n;
     return (1.0 - ((n * (n * n * 15731 + 789221) + 1376312589) & 0x7fffffff) / 1073741824.0);
 }
 
-double noise1d(int x, int octave, int seed) {
+static inline double noise1d(int x, int octave, int seed) {
     return rawnoise(x * 1619 + octave * 3463 + seed * 13397);
 }
 
-double noise2d(int x, int y, int octave, int seed) {
+static inline double noise2d(int x, int y, int octave, int seed) {
     return rawnoise(x * 1619 + y * 31337 + octave * 3463 + seed * 13397);
 }
 
-double noise3d(int x, int y, int z, int octave, int seed) {
+static inline double noise3d(int x, int y, int z, int octave, int seed) {
     return rawnoise(x * 1919 + y * 31337 + z * 7669 + octave * 3463 + seed * 13397);
 }
 
-double interpolate(double a, double b, double x) {
+static inline double interpolate(double a, double b, double x) {
     double f = (1 - cos(x * 3.141593)) * 0.5;
 
     return a * (1 - f) + b * f;
 }
 
-double smooth1d(double x, int octave, int seed) {
+static inline double smooth1d(double x, int octave, int seed) {
     int intx = (int)x;
     double fracx = x - intx;
 
@@ -48,7 +55,7 @@ double smooth1d(double x, int octave, int seed) {
     return interpolate(v1, v2, fracx);
 }
 
-double smooth2d(double x, double y, int octave, int seed) {
+static inline double smooth2d(double x, double y, int octave, int seed) {
     int intx = (int)x;
     double fracx = x - intx;
     int inty = (int)y;
@@ -65,7 +72,7 @@ double smooth2d(double x, double y, int octave, int seed) {
     return interpolate(i1, i2, fracy);
 }
 
-double smooth3d(double x, double y, double z, int octave, int seed) {
+static inline double smooth3d(double x, double y, double z, int octave, int seed) {
     int intx = (int)x;
     double fracx = x - intx;
     int inty = (int)y;
@@ -94,7 +101,7 @@ double smooth3d(double x, double y, double z, int octave, int seed) {
     return interpolate(j1, j2, fracz);
 }
 
-double pnoise1d(double x, double persistence, int octaves, int seed) {
+static inline double pnoise1d(double x, double persistence, int octaves, int seed) {
    double total = 0.0;
    double frequency = 1.0;
    double amplitude = 1.0;
@@ -109,7 +116,7 @@ double pnoise1d(double x, double persistence, int octaves, int seed) {
    return total;
 }
 
-double pnoise2d(double x, double y, double persistence, int octaves, int seed) {
+static inline double pnoise2d(double x, double y, double persistence, int octaves, int seed) {
    double total = 0.0;
    double frequency = 1.0;
    double amplitude = 1.0;
@@ -124,7 +131,7 @@ double pnoise2d(double x, double y, double persistence, int octaves, int seed) {
    return total;
 }
 
-double pnoise3d(double x, double y, double z, double persistence, int octaves, int seed) {
+static inline double pnoise3d(double x, double y, double z, double persistence, int octaves, int seed) {
    double total = 0.0;
    double frequency = 1.0;
    double amplitude = 1.0;
@@ -146,13 +153,6 @@ int main(void) {
 	int time = 0;
 	int kb_c;
 
-	float scale_x = 1.0;
-	float scale_y = 1.0;
-
-	float c_x, c_y, v;
-
-	short c1, c2, c3, v1, v2;
-
    	// 320x200; 256 colour mode
     _setvideomode(_MRES256COLOR);
 
@@ -165,8 +165,8 @@ int main(void) {
 				break;
 	    	}
 
-	    	for (y = 0; y < Y_RES; y++) {
-				for (x = 0; x < X_RES; x++) {
+	    	for (y = 32; y < Y_RES - 32; y++) {
+				for (x = 32; x < X_RES - 32; x++) {
 					int noise = (int)
 						(pnoise3d(x * 0.01, y * 0.01, time * 0.01,
 						0.7, 5, 12124) * 255.);
@@ -180,6 +180,6 @@ int main(void) {
 	// return to con mode
 	_setvideomode(_DEFAULTMODE);
 
-	printf("Demo done\n");
+	printf("Demo done!!\n");
     return 0;
 }
