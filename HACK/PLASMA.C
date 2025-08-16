@@ -7,6 +7,10 @@
 #include <graph.h>
 #include <conio.h>
 #include <math.h>
+#include <stdlib.h>
+#include <dos.h>
+#include <mem.h>
+#include <malloc.h>
 
 // brought to you by Howie
 // close enough(TM)
@@ -21,6 +25,13 @@
 
 #define X_RES 320
 #define Y_RES 200
+
+// VGA stuff, credit root42
+#define SET_MODE 0x0
+#define VIDEO_INT 0x10
+#define INPUT_STATUS 0x03DA
+#define VRETRACE 0x08
+char far * const VGA = (char far*) 0xA0000000L;
 
 // Image size: 256x136, total pixels: 34816
 static const unsigned long long image[544] = {
@@ -289,18 +300,29 @@ static inline double pnoise3d(double x, double y, double z, double persistence, 
    return total;
 }
 
+#define DRAW(x,y,c) *(framebuf + (unsigned long) X_RES * (y) + (x)) = c
 
 int main(void) {
     int y;
 	int x;
 	int time = 0;
 	int kb_c;
+	int i;
 
 	// text stuff
 	int tword; // word idx
 	int tbit; // bit in word idx
 	char pix; // pixel in image
     char is_text_mode = 0;
+
+	char far *framebuf;
+
+	// allocate framebuffer
+	//framebuf = malloc((Y_RES - 32 - 32) * (X_RES - 32 - 32));
+	framebuf = _fmalloc(X_RES * Y_RES);
+	_fmemset(framebuf, 0, X_RES * Y_RES);
+	//printf("addr 0x%X\n", framebuf);
+	//getch();
 
    	// 320x200; 256 colour mode
     _setvideomode(_MRES256COLOR);
@@ -327,6 +349,7 @@ int main(void) {
 			tword = 0;
 			tbit = 0;
 
+/*
 			// draw greetz
 			_settextposition(1, 15);
 			_outtext("GREETZ TO:");
@@ -336,10 +359,11 @@ int main(void) {
 			_outtext("devilbunny, howie, raybena,");
 			_settextposition(4, 5);
 			_outtext("cheerfulmoss");
+*/
 
 	    	for (y = 32; y < Y_RES - 32; y++) {
 				for (x = 32; x < X_RES - 32; x++) {
-					int noise = (int)
+					char noise = (char)
 						(pnoise3d(x * 0.01, y * 0.01, time * 0.01,
 						0.7, 5, 12124) * 255.);
 
@@ -353,21 +377,27 @@ int main(void) {
 					}
 
 					if (is_text_mode == 0) {
-						_setcolor(noise);
-						_setpixel(x, y);
+						DRAW(x, y, noise);
 					} else {
 						// apply text mask
 						if (pix == 1) {
 							// TODO constrain palette to bright colours
-							_setcolor(noise);
+							DRAW(x, y, noise);
 						} else {
-							_setcolor(0);
+							DRAW(x, y, 0);
 						}
-						_setpixel(x, y);
 					} // END TEXT
 				} // END INNER FOR
 	    	} // END OUTER FOR
 	    	time++;
+
+			// wait for vblank
+			while (inp(INPUT_STATUS) & VRETRACE);
+			while (!inp(INPUT_STATUS) & VRETRACE);
+
+			// copy - making sure we use the far ptr version
+			// this will blit it to the screen
+			_fmemcpy(VGA, framebuf, X_RES * Y_RES);
 
 			// also toggle text mode every few frames
 			if (time % 64 == 0) {
