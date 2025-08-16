@@ -3,14 +3,14 @@
 // Programmed on FreeDOS
 // GREETZ TO:
 // broken_pipe, bpaul, eerie!!, devilbunny, howie
-#include <stdio.h>
-#include <graph.h>
 #include <conio.h>
-#include <math.h>
-#include <stdlib.h>
 #include <dos.h>
-#include <mem.h>
+#include <graph.h>
 #include <malloc.h>
+#include <math.h>
+#include <mem.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 // brought to you by Howie
 // close enough(TM)
@@ -31,10 +31,14 @@
 #define VIDEO_INT 0x10
 #define INPUT_STATUS 0x03DA
 #define VRETRACE 0x08
-char far * const VGA = (char far*) 0xA0000000L;
+char far *const VGA = (char far *) 0xA0000000L;
 
+#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
+#define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
+
+// clang-format off
 // Image size: 256x136, total pixels: 34816
-static const unsigned long long image[544] = {
+static const unsigned long long hack_image[544] = {
     0x0000000000000000ULL,     0x0000000000000000ULL,     0x0000000000000000ULL,     0x0000000000000000ULL,
     0x0000000000000000ULL,     0x0000000000000000ULL,     0x0000000000000000ULL,     0x0000000000000000ULL,
     0x0000000000000000ULL,     0x0000000000000000ULL,     0x0000000000000000ULL,     0x0000000000000000ULL,
@@ -173,137 +177,166 @@ static const unsigned long long image[544] = {
     0x0000000000000000ULL,     0x0000000000000000ULL,     0x0000000000000000ULL,     0x0000000000000000ULL,
 
 };
+// clang-format on
+
+#include "FONT.INC"
 
 // source: https://github.com/czinn/perlin
 
 static inline double rawnoise(int n) {
-    n = (n << 13) ^ n;
-    return (1.0 - ((n * (n * n * 15731 + 789221) + 1376312589) & 0x7fffffff) / 1073741824.0);
+	n = (n << 13) ^ n;
+	return (1.0
+		- ((n * (n * n * 15731 + 789221) + 1376312589) & 0x7fffffff)
+			/ 1073741824.0);
 }
 
 static inline double noise1d(int x, int octave, int seed) {
-    return rawnoise(x * 1619 + octave * 3463 + seed * 13397);
+	return rawnoise(x * 1619 + octave * 3463 + seed * 13397);
 }
 
 static inline double noise2d(int x, int y, int octave, int seed) {
-    return rawnoise(x * 1619 + y * 31337 + octave * 3463 + seed * 13397);
+	return rawnoise(x * 1619 + y * 31337 + octave * 3463 + seed * 13397);
 }
 
 static inline double noise3d(int x, int y, int z, int octave, int seed) {
-    return rawnoise(x * 1919 + y * 31337 + z * 7669 + octave * 3463 + seed * 13397);
+	return rawnoise(
+		x * 1919 + y * 31337 + z * 7669 + octave * 3463 + seed * 13397);
 }
 
 static inline double interpolate(double a, double b, double x) {
-    double f = (1 - cos(x * 3.141593)) * 0.5;
+	double f = (1 - cos(x * 3.141593)) * 0.5;
 
-    return a * (1 - f) + b * f;
+	return a * (1 - f) + b * f;
 }
 
 static inline double smooth1d(double x, int octave, int seed) {
-    int intx = (int)x;
-    double fracx = x - intx;
+	int intx = (int) x;
+	double fracx = x - intx;
 
-    double v1 = noise1d(intx, octave, seed);
-    double v2 = noise1d(intx + 1, octave, seed);
+	double v1 = noise1d(intx, octave, seed);
+	double v2 = noise1d(intx + 1, octave, seed);
 
-    return interpolate(v1, v2, fracx);
+	return interpolate(v1, v2, fracx);
 }
 
 static inline double smooth2d(double x, double y, int octave, int seed) {
-    int intx = (int)x;
-    double fracx = x - intx;
-    int inty = (int)y;
-    double fracy = y - inty;
+	int intx = (int) x;
+	double fracx = x - intx;
+	int inty = (int) y;
+	double fracy = y - inty;
 
-    double v1 = noise2d(intx, inty, octave, seed);
-    double v2 = noise2d(intx + 1, inty, octave, seed);
-    double v3 = noise2d(intx, inty + 1, octave, seed);
-    double v4 = noise2d(intx + 1, inty + 1, octave, seed);
+	double v1 = noise2d(intx, inty, octave, seed);
+	double v2 = noise2d(intx + 1, inty, octave, seed);
+	double v3 = noise2d(intx, inty + 1, octave, seed);
+	double v4 = noise2d(intx + 1, inty + 1, octave, seed);
 
-    double i1 = interpolate(v1, v2, fracx);
-    double i2 = interpolate(v3, v4, fracx);
+	double i1 = interpolate(v1, v2, fracx);
+	double i2 = interpolate(v3, v4, fracx);
 
-    return interpolate(i1, i2, fracy);
+	return interpolate(i1, i2, fracy);
 }
 
-static inline double smooth3d(double x, double y, double z, int octave, int seed) {
-    int intx = (int)x;
-    double fracx = x - intx;
-    int inty = (int)y;
-    double fracy = y - inty;
-    int intz = (int)z;
-    double fracz = z - intz;
+static inline double smooth3d(
+	double x, double y, double z, int octave, int seed) {
+	int intx = (int) x;
+	double fracx = x - intx;
+	int inty = (int) y;
+	double fracy = y - inty;
+	int intz = (int) z;
+	double fracz = z - intz;
 
+	double v1 = noise3d(intx, inty, intz, octave, seed);
+	double v2 = noise3d(intx + 1, inty, intz, octave, seed);
+	double v3 = noise3d(intx, inty + 1, intz, octave, seed);
+	double v4 = noise3d(intx + 1, inty + 1, intz, octave, seed);
+	double v5 = noise3d(intx, inty, intz + 1, octave, seed);
+	double v6 = noise3d(intx + 1, inty, intz + 1, octave, seed);
+	double v7 = noise3d(intx, inty + 1, intz + 1, octave, seed);
+	double v8 = noise3d(intx + 1, inty + 1, intz + 1, octave, seed);
 
-    double v1 = noise3d(intx, inty, intz, octave, seed);
-    double v2 = noise3d(intx + 1, inty, intz, octave, seed);
-    double v3 = noise3d(intx, inty + 1, intz, octave, seed);
-    double v4 = noise3d(intx + 1, inty + 1, intz, octave, seed);
-    double v5 = noise3d(intx, inty, intz + 1, octave, seed);
-    double v6 = noise3d(intx + 1, inty, intz + 1, octave, seed);
-    double v7 = noise3d(intx, inty + 1, intz + 1, octave, seed);
-    double v8 = noise3d(intx + 1, inty + 1, intz + 1, octave, seed);
+	double i1 = interpolate(v1, v2, fracx);
+	double i2 = interpolate(v3, v4, fracx);
+	double i3 = interpolate(v5, v6, fracx);
+	double i4 = interpolate(v7, v8, fracx);
 
-    double i1 = interpolate(v1, v2, fracx);
-    double i2 = interpolate(v3, v4, fracx);
-    double i3 = interpolate(v5, v6, fracx);
-    double i4 = interpolate(v7, v8, fracx);
+	double j1 = interpolate(i1, i2, fracy);
+	double j2 = interpolate(i3, i4, fracy);
 
-    double j1 = interpolate(i1, i2, fracy);
-    double j2 = interpolate(i3, i4, fracy);
-
-    return interpolate(j1, j2, fracz);
+	return interpolate(j1, j2, fracz);
 }
 
-static inline double pnoise1d(double x, double persistence, int octaves, int seed) {
-   double total = 0.0;
-   double frequency = 1.0;
-   double amplitude = 1.0;
-   int i = 0;
+static inline double pnoise1d(
+	double x, double persistence, int octaves, int seed) {
+	double total = 0.0;
+	double frequency = 1.0;
+	double amplitude = 1.0;
+	int i = 0;
 
-   for(i = 0; i < octaves; i++) {
-       total += smooth1d(x * frequency, i, seed) * amplitude;
-       frequency /= 2;
-       amplitude *= persistence;
-   }
+	for (i = 0; i < octaves; i++) {
+		total += smooth1d(x * frequency, i, seed) * amplitude;
+		frequency /= 2;
+		amplitude *= persistence;
+	}
 
-   return total;
+	return total;
 }
 
-static inline double pnoise2d(double x, double y, double persistence, int octaves, int seed) {
-   double total = 0.0;
-   double frequency = 1.0;
-   double amplitude = 1.0;
-   int i = 0;
+static inline double pnoise2d(
+	double x, double y, double persistence, int octaves, int seed) {
+	double total = 0.0;
+	double frequency = 1.0;
+	double amplitude = 1.0;
+	int i = 0;
 
-   for(i = 0; i < octaves; i++) {
-       total += smooth2d(x * frequency, y * frequency, i, seed) * amplitude;
-       frequency /= 2;
-       amplitude *= persistence;
-   }
+	for (i = 0; i < octaves; i++) {
+		total += smooth2d(x * frequency, y * frequency, i, seed) * amplitude;
+		frequency /= 2;
+		amplitude *= persistence;
+	}
 
-   return total;
+	return total;
 }
 
-static inline double pnoise3d(double x, double y, double z, double persistence, int octaves, int seed) {
-   double total = 0.0;
-   double frequency = 1.0;
-   double amplitude = 1.0;
-   int i = 0;
+static inline double pnoise3d(
+	double x, double y, double z, double persistence, int octaves, int seed) {
+	double total = 0.0;
+	double frequency = 1.0;
+	double amplitude = 1.0;
+	int i = 0;
 
-   for(i = 0; i < octaves; i++) {
-       total += smooth3d(x * frequency, y * frequency, z * frequency, i, seed) * amplitude;
-       frequency /= 2;
-       amplitude *= persistence;
-   }
+	for (i = 0; i < octaves; i++) {
+		total += smooth3d(x * frequency, y * frequency, z * frequency, i, seed)
+			* amplitude;
+		frequency /= 2;
+		amplitude *= persistence;
+	}
 
-   return total;
+	return total;
 }
 
-#define DRAW(x,y,c) *(framebuf + (unsigned long) X_RES * (y) + (x)) = c
+#define DRAW(x, y, c) *(framebuf + (unsigned long) X_RES * (y) + (x)) = c
+
+static const char *GREETZ
+	= "GREETZ TO EERIE BROKENPIPE BPAUL DEVILBUNNY HOWIE RAYBENA "
+	  "FRIES WALL STARER ANTI ALEGS";
+
+static inline Glyph lookup_glyph(char c) {
+	int i;
+	Glyph g;
+
+	for (i = 0; i < FONT_SIZE; i++) {
+		g = FONT[i];
+		if (g.ch == c) {
+			return g;
+		}
+	}
+
+	// not found, just return 'A'
+	return *FONT;
+}
 
 int main(void) {
-    int y;
+	int y;
 	int x;
 	int time = 0;
 	int kb_c;
@@ -313,19 +346,31 @@ int main(void) {
 	int tword; // word idx
 	int tbit; // bit in word idx
 	char pix; // pixel in image
-    char is_text_mode = 0;
+	char is_text_mode = 0;
+
+	// greetz stuff
+	int greetz_idx;
+	char greetz_char;
+	int greetz_offset;
+	Glyph glyph;
 
 	char far *framebuf;
+	char far *mask;
 
 	// allocate framebuffer
-	//framebuf = malloc((Y_RES - 32 - 32) * (X_RES - 32 - 32));
+	// framebuf = malloc((Y_RES - 32 - 32) * (X_RES - 32 - 32));
 	framebuf = _fmalloc(X_RES * Y_RES);
 	_fmemset(framebuf, 0, X_RES * Y_RES);
-	//printf("addr 0x%X\n", framebuf);
-	//getch();
 
-   	// 320x200; 256 colour mode
-    _setvideomode(_MRES256COLOR);
+	mask = _fmalloc(X_RES * Y_RES);
+	_fmemset(mask, 0, X_RES * Y_RES);
+
+	// 320x200; 256 colour mode
+	_setvideomode(_MRES256COLOR);
+
+	greetz_idx = 0;
+	greetz_char = 'A';
+	greetz_offset = 0;
 
 	while (1) {
 		if (kbhit()) {
@@ -343,32 +388,36 @@ int main(void) {
 				}
 				// wait til next frame
 				continue;
-			}
-		}
+			} // END IF
+		} // END KBHIT
+
+		// draw to main buffer
+		for (y = 32; y < Y_RES - 32; y++) {
+			for (x = 32; x < X_RES - 32; x++) {
+				char noise = (char) (pnoise3d(x * 0.01, y * 0.01, time * 0.01,
+										 0.7, 5, 12124)
+					* 255.);
+
+				DRAW(x, y, noise);
+			} // END INNER FOR
+		} // END OUTER FOR
+
+		if (is_text_mode == 1) {
+			// draw to mask buffer
+			// get the pixmap for the char
+			greetz_char = *(GREETZ + greetz_idx);
+			glyph = lookup_glyph(greetz_char);
 
 			tword = 0;
 			tbit = 0;
 
-/*
-			// draw greetz
-			_settextposition(1, 15);
-			_outtext("GREETZ TO:");
-			_settextposition(2, 5);
-			_outtext("broken_pipe, bpaul, eerie!!,");
-			_settextposition(3, 5);
-			_outtext("devilbunny, howie, raybena,");
-			_settextposition(4, 5);
-			_outtext("cheerfulmoss");
-*/
-
-	    	for (y = 32; y < Y_RES - 32; y++) {
-				for (x = 32; x < X_RES - 32; x++) {
-					char noise = (char)
-						(pnoise3d(x * 0.01, y * 0.01, time * 0.01,
-						0.7, 5, 12124) * 255.);
-
-					// always do text lookup
-					char pix = (image[tword] >> tbit) & 1;
+			// blit the char to the screen
+			// we know the glyph is 128x128
+			for (y = 64; y < 64 + 128; y++) {
+				for (x = greetz_offset; x < MIN(greetz_offset + 128, X_RES);
+					x++) {
+					// lookup the pixmap
+					pix = (glyph.data[tword] >> tbit) & 1;
 					tbit++;
 					if (tbit >= 64) {
 						// next word
@@ -376,40 +425,37 @@ int main(void) {
 						tword++;
 					}
 
-					if (is_text_mode == 0) {
-						DRAW(x, y, noise);
+					if (pix == 1) {
+						DRAW(x, y, 10);
 					} else {
-						// apply text mask
-						if (pix == 1) {
-							// TODO constrain palette to bright colours
-							DRAW(x, y, noise);
-						} else {
-							DRAW(x, y, 0);
-						}
-					} // END TEXT
-				} // END INNER FOR
-	    	} // END OUTER FOR
-	    	time++;
-
-			// wait for vblank
-			while (inp(INPUT_STATUS) & VRETRACE);
-			while (!inp(INPUT_STATUS) & VRETRACE);
-
-			// copy - making sure we use the far ptr version
-			// this will blit it to the screen
-			_fmemcpy(VGA, framebuf, X_RES * Y_RES);
-
-			// also toggle text mode every few frames
-			if (time % 64 == 0) {
-				is_text_mode = !is_text_mode;
+						DRAW(x, y, 0);
+					}
+				}
 			}
+		}
 
-		} // END WHILE
+		// wait for vblank
+		while (inp(INPUT_STATUS) & VRETRACE)
+			;
+		while (!inp(INPUT_STATUS) & VRETRACE)
+			;
 
-		// return to con mode
-		_setvideomode(_DEFAULTMODE);
+		// copy - making sure we use the far ptr version
+		// this will blit it to the screen
+		_fmemcpy(VGA, framebuf, X_RES * Y_RES);
 
-		printf("PLASMATIC - M YOUNG 2025\n");
-		printf("thanks for watching :3\n");
-    	return 0;
+		// also toggle text mode every few frames
+		/*if (time % 64 == 0) {
+			is_text_mode = !is_text_mode;
+		}*/
+
+		time++;
+	} // END WHILE
+
+	// return to con mode
+	_setvideomode(_DEFAULTMODE);
+
+	printf("PLASMATIC - M YOUNG 2025\n");
+	printf("thanks for watching :3\n");
+	return 0;
 } // END MAIN

@@ -1,1 +1,26 @@
-PLASMA.C(159): Warning! W131: No prototype found for function 'srand'
+PLASMA.C(401): Error! E1077: Missing '}'
+PLASMA.C(401): Error! E1077: Missing '}'
+PLASMA.C(401): Warning! W107: Missing return value for function 'main'
+PLASMA.C(401): Error! E1011: Symbol 'greetz_idx' has not been declared
+PLASMA.C(401): Error! E1054: Expression must be constant
+PLASMA.C(412): Warning! W132: No storage class or type specified
+PLASMA.C(412): Error! E1009: Expecting ';' but found '++'
+PLASMA.C(412): Error! E1061: Expecting data or function declaration, but found '++'
+PLASMA.C(412): Error! E1026: Invalid declarator
+PLASMA.C(415): Error! E1099: Statement must be inside function. Probable cause: missing {
+PLASMA.C(430): Error! E1009: Expecting ')' but found '('
+PLASMA.C(430): Error! E1009: Expecting ')' but found '-'
+PLASMA.C(430): Error! E1094: Function cannot return a function
+PLASMA.C(430): Error! E1057: Modifiers disagree with previous definition of '_setvideomode'
+PLASMA.C(430): Note! I2002: '_setvideomode' defined in: C:\WATCOM\H\graph.h(114)
+PLASMA.C(430): Error! E1062: Inconsistent return type for function '_setvideomode'
+PLASMA.C(430): Note! I2003: source conversion type is 'int (void)(void)'
+PLASMA.C(430): Note! I2004: target conversion type is 'short'
+PLASMA.C(430): Error! E1044: Variable '_setvideomode' has incomplete type
+PLASMA.C(430): Error! E1026: Invalid declarator
+PLASMA.C(430): Error! E1009: Expecting ',' but found '-'
+PLASMA.C(430): Error! E1026: Invalid declarator
+PLASMA.C(430): Error! E1009: Expecting ',' but found '1'
+PLASMA.C(430): Error! E1026: Invalid declarator
+PLASMA.C(430): Error! E1009: Expecting ',' but found ')'
+PLASMA.C(430): Error! E1147: Too many errors: compilation aborted
