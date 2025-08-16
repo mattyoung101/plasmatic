@@ -402,22 +402,16 @@ int main(void) {
 			} // END INNER FOR
 		} // END OUTER FOR
 
+		tword = 0;
+		tbit = 0;
+
+		// text blitting
 		if (is_text_mode == 1) {
-			// draw to mask buffer
-			// get the pixmap for the char
-			greetz_char = *(GREETZ + greetz_idx);
-			glyph = lookup_glyph(greetz_char);
-
-			tword = 0;
-			tbit = 0;
-
-			// blit the char to the screen
-			// we know the glyph is 128x128
-			for (y = 64; y < 64 + 128; y++) {
-				for (x = greetz_offset; x < MIN(greetz_offset + 128, X_RES);
-					x++) {
+			// blit the mask to the screen
+			for (y = 32; y < Y_RES - 32; y++) {
+				for (x = 32; x < X_RES; x++) {
 					// lookup the pixmap
-					pix = (glyph.data[tword] >> tbit) & 1;
+					pix = (hack_image[tword] >> tbit) & 1;
 					tbit++;
 					if (tbit >= 64) {
 						// next word
@@ -450,6 +444,7 @@ int main(void) {
 		}*/
 
 		time++;
+		greetz_offset++;
 	} // END WHILE
 
 	// return to con mode
