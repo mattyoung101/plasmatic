@@ -38,7 +38,7 @@ hackathon.
 - Bayer dither: https://stackoverflow.com/a/68192472/5007892
 - Dither matrices: http://www.edenwaith.com/blog/index.php?p=157 and
 https://en.wikipedia.org/wiki/Ordered_dithering#Threshold_map
-- TODO sine approx
+- Sine approximation https://gist.github.com/SignalWhisperer/9620f04486dae45ac7332872fce289b0
 
 AI use was minimal, I was planning entirely not to at first, but ran out of time and got extremely lazy. Sorry :sob:
 Alas, AI was used to generate some of the scripts in the "old_crap" directory, the text mask to C array
@@ -46,3 +46,5 @@ script, and the util function to lookup a bit in an array of uint64s. I also use
 dithering because applying the dither matrix didn't make sense to me at first (it turned out I was doing the
 quantizing wrong).
 
+Everything else comes from the above list of references used; I started knowing barely nothing about DOS. I
+still kinda don't know anything :)
