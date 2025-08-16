@@ -28,7 +28,7 @@ if bitpos > 0:
 
 # Print C array
 print(f"// Image size: {w}x{h}, total pixels: {w*h}")
-print(f"const uint64_t pix[{len(words)}] = {{")
+print(f"const unsigned long long huge IMAGE[{len(words)}] = {{")
 
 for i, w64 in enumerate(words):
     print(f"    0x{w64:016x}ULL,", end="")
