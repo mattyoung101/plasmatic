@@ -1,8 +1,6 @@
 // Plasmatic by Matt Young
 // UQCS Hackathon 2025
 // Programmed on FreeDOS
-// GREETZ TO:
-// broken_pipe, bpaul, eerie!!, devilbunny, howie
 #include <conio.h>
 #include <dos.h>
 #include <graph.h>
@@ -11,6 +9,7 @@
 #include <mem.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 // brought to you by Howie
 // close enough(TM)
@@ -41,111 +40,94 @@ char far *const VGA = (char far *) 0xA0000000L;
 #define GREETZ_HEIGHT 113
 #include "GREETZ.INC"
 
+// source: libgdx math utils
+#define SIN_BITS (8)
+#define SIN_MASK (~(-1 << SIN_BITS)) // 255 entries
+#define SIN_COUNT (SIN_MASK + 1)
+
+#define RAD_FULL (PI * 2)
+#define RAD2INDEX (SIN_COUNT / RAD_FULL)
+
+static float *SinTab;
+
+static inline void init_sin_tab() {
+	int i = 0;
+	float radFull;
+
+	SinTab = malloc(SIN_COUNT * sizeof(float));
+	for (i = 0; i < SIN_COUNT; i++) {
+		SinTab[i] = (float) sin((i + 0.5f) / SIN_COUNT * radFull);
+	}
+}
+
+#define HALF_PI (PI/2)
+
+#define SIN(x) (SinTab[(int)(x * RAD2INDEX) & SIN_MASK])
+//#define COS(x) (SinTab[(int)((x + (PI/2)) * RAD2INDEX) & SIN_MASK])
+#define COS(x) (SinTab[(int)((x + HALF_PI) * RAD2INDEX) & SIN_MASK])
+
 // source: https://github.com/czinn/perlin
 
-static inline double rawnoise(int n) {
+static inline float rawnoise(int n) {
 	n = (n << 13) ^ n;
 	return (1.0
 		- ((n * (n * n * 15731 + 789221) + 1376312589) & 0x7fffffff)
 			/ 1073741824.0);
 }
 
-static inline double noise1d(int x, int octave, int seed) {
+static inline float noise1d(int x, int octave, int seed) {
 	return rawnoise(x * 1619 + octave * 3463 + seed * 13397);
 }
 
-static inline double noise2d(int x, int y, int octave, int seed) {
+static inline float noise2d(int x, int y, int octave, int seed) {
 	return rawnoise(x * 1619 + y * 31337 + octave * 3463 + seed * 13397);
 }
 
-static inline double noise3d(int x, int y, int z, int octave, int seed) {
+static inline float noise3d(int x, int y, int z, int octave, int seed) {
 	return rawnoise(
 		x * 1919 + y * 31337 + z * 7669 + octave * 3463 + seed * 13397);
 }
 
-static inline double interpolate(double a, double b, double x) {
-	double f = (1 - cos(x * 3.141593)) * 0.5;
+static inline float interpolate(float a, float b, float x) {
+	float f = (1.f - cos(x * PI)) * 0.5f;
 
-	return a * (1 - f) + b * f;
+	return a * (1.f - f) + b * f;
 }
 
-static inline double smooth1d(double x, int octave, int seed) {
+static inline float smooth3d(
+	float x, float y, float z, int octave, int seed) {
 	int intx = (int) x;
-	double fracx = x - intx;
-
-	double v1 = noise1d(intx, octave, seed);
-	double v2 = noise1d(intx + 1, octave, seed);
-
-	return interpolate(v1, v2, fracx);
-}
-
-static inline double smooth2d(double x, double y, int octave, int seed) {
-	int intx = (int) x;
-	double fracx = x - intx;
+	float fracx = x - intx;
 	int inty = (int) y;
-	double fracy = y - inty;
-
-	double v1 = noise2d(intx, inty, octave, seed);
-	double v2 = noise2d(intx + 1, inty, octave, seed);
-	double v3 = noise2d(intx, inty + 1, octave, seed);
-	double v4 = noise2d(intx + 1, inty + 1, octave, seed);
-
-	double i1 = interpolate(v1, v2, fracx);
-	double i2 = interpolate(v3, v4, fracx);
-
-	return interpolate(i1, i2, fracy);
-}
-
-static inline double smooth3d(
-	double x, double y, double z, int octave, int seed) {
-	int intx = (int) x;
-	double fracx = x - intx;
-	int inty = (int) y;
-	double fracy = y - inty;
+	float fracy = y - inty;
 	int intz = (int) z;
-	double fracz = z - intz;
+	float fracz = z - intz;
 
-	double v1 = noise3d(intx, inty, intz, octave, seed);
-	double v2 = noise3d(intx + 1, inty, intz, octave, seed);
-	double v3 = noise3d(intx, inty + 1, intz, octave, seed);
-	double v4 = noise3d(intx + 1, inty + 1, intz, octave, seed);
-	double v5 = noise3d(intx, inty, intz + 1, octave, seed);
-	double v6 = noise3d(intx + 1, inty, intz + 1, octave, seed);
-	double v7 = noise3d(intx, inty + 1, intz + 1, octave, seed);
-	double v8 = noise3d(intx + 1, inty + 1, intz + 1, octave, seed);
+	float v1 = noise3d(intx, inty, intz, octave, seed);
+	float v2 = noise3d(intx + 1, inty, intz, octave, seed);
+	float v3 = noise3d(intx, inty + 1, intz, octave, seed);
+	float v4 = noise3d(intx + 1, inty + 1, intz, octave, seed);
+	float v5 = noise3d(intx, inty, intz + 1, octave, seed);
+	float v6 = noise3d(intx + 1, inty, intz + 1, octave, seed);
+	float v7 = noise3d(intx, inty + 1, intz + 1, octave, seed);
+	float v8 = noise3d(intx + 1, inty + 1, intz + 1, octave, seed);
 
-	double i1 = interpolate(v1, v2, fracx);
-	double i2 = interpolate(v3, v4, fracx);
-	double i3 = interpolate(v5, v6, fracx);
-	double i4 = interpolate(v7, v8, fracx);
+	float i1 = interpolate(v1, v2, fracx);
+	float i2 = interpolate(v3, v4, fracx);
+	float i3 = interpolate(v5, v6, fracx);
+	float i4 = interpolate(v7, v8, fracx);
 
-	double j1 = interpolate(i1, i2, fracy);
-	double j2 = interpolate(i3, i4, fracy);
+	float j1 = interpolate(i1, i2, fracy);
+	float j2 = interpolate(i3, i4, fracy);
 
 	return interpolate(j1, j2, fracz);
 }
 
-static inline double pnoise1d(
-	double x, double persistence, int octaves, int seed) {
-	double total = 0.0;
-	double frequency = 1.0;
-	double amplitude = 1.0;
-	int i = 0;
-
-	for (i = 0; i < octaves; i++) {
-		total += smooth1d(x * frequency, i, seed) * amplitude;
-		frequency /= 2;
-		amplitude *= persistence;
-	}
-
-	return total;
-}
-
-static inline double pnoise3d(
-	double x, double y, double z, double persistence, int octaves, int seed) {
-	double total = 0.0;
-	double frequency = 1.0;
-	double amplitude = 1.0;
+static inline float pnoise3d(
+	float x, float y, float z, float persistence, int octaves, int seed) {
+	float total = 0.0;
+	float frequency = 1.0;
+	float amplitude = 1.0;
 	int i = 0;
 
 	for (i = 0; i < octaves; i++) {
@@ -181,8 +163,22 @@ static inline char get_pixel(int px, int py) {
 }
 
 #define DRAW(x, y, c) *(framebuf + (unsigned long) X_RES * (y) + (x)) = c
+#define GET(x, y) *(framebuf + (unsigned long) X_RES * (y) + (x))
 #define MASK(x, y, c) *(mask + (unsigned long) X_RES * (y) + (x)) = c
 #define GETMASK(x, y) *(mask + (unsigned long) X_RES * (y) + (x))
+
+// source: wikipedia,
+static int BAYER4x4[4][4] = {
+	/*{ 0, 8, 2, 10},
+	{12, 4, 14, 6},
+	{3, 11, 1, 9},
+	{15, 7, 13, 5},*/
+
+	{15,195,60,240},
+	{135,75,180,120},
+	{45,225,30,210},
+	{165,105,150,90},
+};
 
 int main(void) {
 	int y;
@@ -190,6 +186,12 @@ int main(void) {
 	int time = 0;
 	int kb_c;
 	int i;
+	int seed;
+
+	// dithering
+	char oldpix;
+	char newpix;
+	char quant_error;
 
 	// text stuff
 	int mask_idx;
@@ -214,6 +216,9 @@ int main(void) {
 	_setvideomode(_MRES256COLOR);
 
 	greetz_offset = 0;
+
+	init_sin_tab();
+	seed = rand();
 
 	while (1) {
 		if (kbhit()) {
@@ -248,7 +253,7 @@ int main(void) {
 				} // END INNER FOR
 			} // END OUTER FOR
 
-			greetz_offset += 10;
+			greetz_offset += 5;
 			if (greetz_offset > GREETZ_WIDTH) {
 				greetz_offset = 0;
 			}
@@ -261,9 +266,13 @@ int main(void) {
 		// draw to main buffer
 		for (y = 32; y < Y_RES - 32; y++) {
 			for (x = 32; x < X_RES - 32; x++) {
-				char noise = (char) (pnoise3d(x * 0.01, y * 0.01, time * 0.01,
-										 0.7, 5, 12124)
-					* 255.);
+				char noise = (char) (pnoise3d(x * 0.005, y * 0.005,
+									time * 0.005,
+									.7, 1, 12124)
+					* 0xFF);
+				// this was an attempt to coerce it into the
+				// pretty colours
+				//noise = (noise + 0x20F) % 0xFF;
 
 				if ((GETMASK(x,y)) == 0) {
 					// don't draw
@@ -274,6 +283,12 @@ int main(void) {
 				}
 			} // END INNER FOR
 		} // END OUTER FOR
+
+		// apply bayer dithering
+		/*for (y = 32; y < Y_RES - 32; y++) {
+			for (x = 32; x < X_RES - 32; x++) {
+			} // END INNER FOR
+		} // END OUTER FOR*/
 
 		// wait for vblank
 		while (inp(INPUT_STATUS) & VRETRACE)
