@@ -4,7 +4,7 @@
 from PIL import Image
 
 # Load image as 1-bit
-img = Image.open("text_mask_v2.png").convert("1")
+img = Image.open("greetz_crop.png").convert("1")
 w, h = img.size
 pixels = [1 if p else 0 for p in img.getdata()]
 
