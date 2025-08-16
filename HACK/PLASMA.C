@@ -35,36 +35,40 @@ char far *const VGA = (char far *) 0xA0000000L;
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 
-// Image size: 4052x113, total pixels: 457876
-#define GREETZ_WIDTH 4052
-#define GREETZ_HEIGHT 113
 #include "GREETZ.INC"
 
-// source: libgdx math utils
-#define SIN_BITS (8)
-#define SIN_MASK (~(-1 << SIN_BITS)) // 255 entries
-#define SIN_COUNT (SIN_MASK + 1)
+#define SIN_TAB_SIZE 512
+static float SinTab[SIN_TAB_SIZE];
+static float CosTab[SIN_TAB_SIZE];
 
-#define RAD_FULL (PI * 2)
-#define RAD2INDEX (SIN_COUNT / RAD_FULL)
-
-static float *SinTab;
-
+// source: SignalWhisperer on GitHub Gists
 static inline void init_sin_tab() {
-	int i = 0;
-	float radFull;
+	int i;
 
-	SinTab = malloc(SIN_COUNT * sizeof(float));
-	for (i = 0; i < SIN_COUNT; i++) {
-		SinTab[i] = (float) sin((i + 0.5f) / SIN_COUNT * radFull);
+	float initial_phase = 0;
+	float dphase = 2.f * PI / SIN_TAB_SIZE;
+
+	for (i = 0; i < SIN_TAB_SIZE; i++) {
+		SinTab[i] = sin(initial_phase + dphase * i);
+		CosTab[i] = cos(initial_phase + dphase * i);
 	}
 }
 
-#define HALF_PI (PI/2)
+static inline float approxsin(float phase) {
+	phase = fmod(phase, 2 * PI);
+	if (phase < 0)
+		phase += 2 * PI;
+	phase /= 2 * PI;
+	return SinTab[(int) (phase * SIN_TAB_SIZE)];
+}
 
-#define SIN(x) (SinTab[(int)(x * RAD2INDEX) & SIN_MASK])
-//#define COS(x) (SinTab[(int)((x + (PI/2)) * RAD2INDEX) & SIN_MASK])
-#define COS(x) (SinTab[(int)((x + HALF_PI) * RAD2INDEX) & SIN_MASK])
+static inline float approxcos(float phase) {
+	phase = fmod(phase, 2 * PI);
+	if (phase < 0)
+		phase += 2 * PI;
+	phase /= 2 * PI;
+	return CosTab[(int) (phase * SIN_TAB_SIZE)];
+}
 
 // source: https://github.com/czinn/perlin
 
@@ -75,21 +79,13 @@ static inline float rawnoise(int n) {
 			/ 1073741824.0);
 }
 
-static inline float noise1d(int x, int octave, int seed) {
-	return rawnoise(x * 1619 + octave * 3463 + seed * 13397);
-}
-
-static inline float noise2d(int x, int y, int octave, int seed) {
-	return rawnoise(x * 1619 + y * 31337 + octave * 3463 + seed * 13397);
-}
-
 static inline float noise3d(int x, int y, int z, int octave, int seed) {
 	return rawnoise(
 		x * 1919 + y * 31337 + z * 7669 + octave * 3463 + seed * 13397);
 }
 
 static inline float interpolate(float a, float b, float x) {
-	float f = (1.f - cos(x * PI)) * 0.5f;
+	float f = (1.f - approxcos(x * PI)) * 0.5f;
 
 	return a * (1.f - f) + b * f;
 }
@@ -169,21 +165,21 @@ static inline char get_pixel(int px, int py) {
 
 // source: wikipedia,
 static int BAYER4x4[4][4] = {
-	/*{ 0, 8, 2, 10},
+	{ 0, 8, 2, 10},
 	{12, 4, 14, 6},
 	{3, 11, 1, 9},
-	{15, 7, 13, 5},*/
+	{15, 7, 13, 5},
 
-	{15,195,60,240},
+	/*{15,195,60,240},
 	{135,75,180,120},
 	{45,225,30,210},
-	{165,105,150,90},
+	{165,105,150,90},*/
 };
 
 int main(void) {
 	int y;
 	int x;
-	int time = 0;
+	int demotime;
 	int kb_c;
 	int i;
 	int seed;
@@ -192,6 +188,10 @@ int main(void) {
 	char oldpix;
 	char newpix;
 	char quant_error;
+	float bayerf;
+	int dlevel;
+	float dfrac;
+	float dthresh;
 
 	// text stuff
 	int mask_idx;
@@ -200,6 +200,7 @@ int main(void) {
 
 	// greetz stuff
 	int greetz_offset;
+	int greetz_y = 0;
 
 	char far *framebuf;
 	char far *mask;
@@ -216,9 +217,11 @@ int main(void) {
 	_setvideomode(_MRES256COLOR);
 
 	greetz_offset = 0;
+	demotime = 0;
 
-	init_sin_tab();
+	srand(time(NULL));
 	seed = rand();
+	init_sin_tab();
 
 	while (1) {
 		if (kbhit()) {
@@ -241,14 +244,21 @@ int main(void) {
 
 		// greetz blitting
 		if (show_greetz == 1) {
-			// lookup the texel
+			// wiggle the text up and down a bit
+			greetz_y = (int) (approxsin(demotime / 10.f) * 15.f);
+			// visit each pixel in the display area
+			// then lookup the texel *for* that display pixel
 			for (y = 32; y < Y_RES - 32; y++) {
 				for (x = 32; x < X_RES - 32; x++) {
 					// translate from our screen coords
 					// to texel coords
 					// and apply the scroll
-					pix = get_pixel((x - 32 + greetz_offset) % GREETZ_WIDTH,
-						 y - 32);
+					// note that we add a little extra black space
+					// at the end - this is handled for us by
+					// get_pixel
+					pix = get_pixel(
+						(x - 32 + greetz_offset) % (GREETZ_WIDTH + 128),
+						 y - 32 - greetz_y);
 					MASK(x, y, pix ? 255 : 0);
 				} // END INNER FOR
 			} // END OUTER FOR
@@ -266,20 +276,28 @@ int main(void) {
 		// draw to main buffer
 		for (y = 32; y < Y_RES - 32; y++) {
 			for (x = 32; x < X_RES - 32; x++) {
-				char noise = (char) (pnoise3d(x * 0.005, y * 0.005,
-									time * 0.005,
-									.7, 1, 12124)
-					* 0xFF);
+				float noisef = (pnoise3d(x * 0.005, y * 0.005,
+									demotime * 0.005,
+									.7, 1, seed));
 				// this was an attempt to coerce it into the
 				// pretty colours
 				//noise = (noise + 0x20F) % 0xFF;
+
+				// apply bayer dithering
+				dlevel = (int)(noisef * 0xFF);
+				dfrac = noisef * 255 - dlevel;
+				dthresh = (BAYER4x4[y % 4][x % 4] + 0.5f) * (1.f/16.f);
+				if (dfrac > dthresh && dlevel < 255) {
+					dlevel++;
+				}
 
 				if ((GETMASK(x,y)) == 0) {
 					// don't draw
 					DRAW(x, y, 0);
 				} else {
 					// we're ok to draw noise
-					DRAW(x, y, noise);
+					// translate to VGA palette
+					DRAW(x, y, dlevel);
 				}
 			} // END INNER FOR
 		} // END OUTER FOR
@@ -305,13 +323,13 @@ int main(void) {
 			show_greetz = !show_greetz;
 		}*/
 
-		time++;
+		demotime++;
 	} // END WHILE
 
 	// return to con mode
 	_setvideomode(_DEFAULTMODE);
 
-	printf("PLASMATIC - M YOUNG 2025\n");
+	printf("PLASMATIC - ML YOUNG 2025\n");
 	printf("thanks for watching :3\n");
 	return 0;
 } // END MAIN
