@@ -169,11 +169,25 @@ static int BAYER4x4[4][4] = {
 	{12, 4, 14, 6},
 	{3, 11, 1, 9},
 	{15, 7, 13, 5},
+};
 
-	/*{15,195,60,240},
-	{135,75,180,120},
-	{45,225,30,210},
-	{165,105,150,90},*/
+static int BAYER16x16[16][16] = {
+	{0, 128, 32, 160, 8, 136, 40, 168, 2, 130, 34, 162, 10, 138, 42, 170},
+	{192, 64, 224, 96, 200, 72, 232, 104, 194, 66, 226, 98, 202, 74, 234, 106},
+	{48, 176, 16, 144, 56, 184, 24, 152, 50, 178, 18, 146, 58, 186, 26, 154},
+	{240, 112, 208, 80, 248, 120, 216, 88, 242, 114, 210, 82, 250, 122, 218, 90},
+	{12, 140, 44, 172, 4, 132, 36, 164, 14, 142, 46, 174, 6, 134, 38, 166},
+	{204, 76, 236, 108, 196, 68, 228, 100, 206, 78, 238, 110, 198, 70, 230, 102},
+	{60, 188, 28, 156, 52, 180, 20, 148, 62, 190, 30, 158, 54, 182, 22, 150},
+	{252, 124, 220, 92, 244, 116, 212, 84, 254, 126, 222, 94, 246, 118, 214, 86},
+	{3, 131, 35, 163, 11, 139, 43, 171, 1, 129, 33, 161, 9, 137, 41, 169},
+	{195, 67, 227, 99, 203, 75, 235, 107, 193, 65, 225, 97, 201, 73, 233, 105},
+	{51, 179, 19, 147, 59, 187, 27, 155, 49, 177, 17, 145, 57, 185, 25, 153},
+	{243, 115, 211, 83, 251, 123, 219, 91, 241, 113, 209, 81, 249, 121, 217, 89},
+	{15, 143, 47, 175, 7, 135, 39, 167, 13, 141, 45, 173, 5, 133, 37, 165},
+	{207, 79, 239, 111, 199, 71, 231, 103, 205, 77, 237, 109, 197, 69, 229, 101},
+	{63, 191, 31, 159, 55, 183, 23, 151, 61, 189, 29, 157, 53, 181, 21, 149},
+	{255, 127, 223, 95, 247, 119, 215, 87, 253, 125, 221, 93, 245, 117, 213, 85}
 };
 
 int main(void) {
@@ -183,6 +197,7 @@ int main(void) {
 	int kb_c;
 	int i;
 	int seed;
+	int automode;
 
 	// dithering
 	char oldpix;
@@ -201,6 +216,8 @@ int main(void) {
 	// greetz stuff
 	int greetz_offset;
 	int greetz_y = 0;
+	int is_showing_greetz;
+	int auto_greetz_ctr;
 
 	char far *framebuf;
 	char far *mask;
@@ -218,6 +235,9 @@ int main(void) {
 
 	greetz_offset = 0;
 	demotime = 0;
+	automode = 0;
+	is_showing_greetz = 0;
+	auto_greetz_ctr = 0;
 
 	srand(time(NULL));
 	seed = rand();
@@ -234,12 +254,18 @@ int main(void) {
 			if (kb_c == 104) {
 				if (show_greetz == 0) {
 					show_greetz = 1;
+					is_showing_greetz = 1;
 				} else {
 					show_greetz = 0;
+					is_showing_greetz = 0;
 				}
 				// wait til next frame
 				continue;
 			} // END IF
+
+			if (kb_c == 'i') {
+				automode = !automode;
+			}
 		} // END KBHIT
 
 		// greetz blitting
@@ -266,6 +292,12 @@ int main(void) {
 			greetz_offset += 5;
 			if (greetz_offset > GREETZ_WIDTH) {
 				greetz_offset = 0;
+
+				// once we've finished greetz in automode, hide them
+				if (automode) {
+					is_showing_greetz = 0;
+					show_greetz = 0;
+				}
 			}
 		} // END IF GREETZ
 		else {
@@ -318,11 +350,18 @@ int main(void) {
 		// this will blit it to the screen
 		_fmemcpy(VGA, framebuf, X_RES * Y_RES);
 
-		// also toggle text mode every few frames
-		/*if (time % 64 == 0) {
-			show_greetz = !show_greetz;
+		// every some number ticks, in auto mode, show greetz
+		// if we're not currently showing it
+		if (!is_showing_greetz && !show_greetz) {
+			auto_greetz_ctr++;
+			if (auto_greetz_ctr >= 2000 && automode) {
+				auto_greetz_ctr = 0;
+				show_greetz = 1;
+			}
+		}
+		/*if (demotime % 1000 == 0 && automode && !is_showing_greetz) {
+			show_greetz = 1;
 		}*/
-
 		demotime++;
 	} // END WHILE
 
